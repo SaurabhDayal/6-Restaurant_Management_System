@@ -59,6 +59,10 @@ pub struct Dishes {
     pub user_id: i32,
 }
 
+#[derive(Serialize, Deserialize, Debug, sqlx::FromRow)]
+pub struct AddressDistance {
+    pub distance: String
+}
 
 impl FromRequest for Users {
     type Error = MyError;
@@ -97,7 +101,6 @@ impl FromRequest for Users {
                                 a.user_id)
                                 .fetch_one(&state.db)
                                 .await;
-
 
                             Ok(user.unwrap())
                         },

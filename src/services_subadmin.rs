@@ -1,7 +1,7 @@
 use actix_web::{web};
 use actix_web::{get, post, Responder};
 use actix_web::{web::Data, HttpResponse};
-use sqlx::{self};
+use sqlx;
 
 use crate::error::MyError;
 use crate::model::*;
@@ -10,19 +10,31 @@ use crate::model::*;
 // Create Restaurant
 #[post("/restaurant")]
 async fn create_restaurant(state: Data<AppState>, restaurant: web::Json<Restaurants>, usr:Users) -> Result<impl Responder, MyError> {
-    let r = restaurant.into_inner();
+    let res = restaurant.into_inner();
     let b_id = usr.user_id;
 
     let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-    )
-    .fetch_one(&state.db)
-    .await?;
+        )
+        .fetch_all(&state.db)
+        .await?;
 
-    if role_row.role_type =="Admin".to_string()||role_row.role_type =="SubAdmin".to_string() {
+    let mut r = "".to_string();
+    for role in role_row{
+
+        if role.role_type =="SubAdmin".to_string(){
+            r = "Admin".to_string();
+        }
+        if role.role_type =="Admin".to_string(){
+            r = "Admin".to_string();
+            break;
+        }
+    }
+
+    if r=="Admin".to_string() || r=="SubAdmin".to_string() {
         let row = sqlx::query_as!( Restaurants,
             "INSERT INTO restaurants (restaurant_name, restaurant_address, user_id) VALUES ($1, $2, $3) 
             RETURNING restaurant_id, restaurant_name, restaurant_address, user_id",
-            r.restaurant_name, r.restaurant_address, b_id
+            res.restaurant_name, res.restaurant_address, b_id
         )
         .fetch_one(&state.db)
         .await?;
@@ -39,12 +51,25 @@ async fn create_dish(state: Data<AppState>, dish: web::Json<Dishes>, usr:Users) 
     let d = dish.into_inner();
     let b_id = usr.user_id;
 
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-    )
-    .fetch_one(&state.db)
-    .await?;
 
-    if role_row.role_type =="Admin".to_string()||role_row.role_type =="SubAdmin".to_string() {
+    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
+        )
+        .fetch_all(&state.db)
+        .await?;
+
+    let mut r = "".to_string();
+    for role in role_row{
+
+        if role.role_type =="SubAdmin".to_string(){
+            r = "Admin".to_string();
+        }
+        if role.role_type =="Admin".to_string(){
+            r = "Admin".to_string();
+            break;
+        }
+    }
+
+    if r =="Admin".to_string()||r=="SubAdmin".to_string() {
         let row = sqlx::query_as!( Dishes,
             "INSERT INTO dishes (dish_name, dish_cost, restaurant_id, user_id) VALUES ($1, $2, $3, $4) 
             RETURNING dish_id, dish_name, dish_cost, restaurant_id, user_id",
@@ -65,12 +90,25 @@ async fn create_dish(state: Data<AppState>, dish: web::Json<Dishes>, usr:Users) 
 #[get("/restaurant")]
 async fn get_restaurant_by_user_id(state: Data<AppState>, usr: Users) -> Result<impl Responder, MyError> {
     let b_id = usr.user_id;
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-    )
-    .fetch_one(&state.db)
-    .await?;
 
-    if role_row.role_type=="Admin".to_string(){
+    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
+        )
+        .fetch_all(&state.db)
+        .await?;
+
+    let mut r = "".to_string();
+    for role in role_row{
+
+        if role.role_type =="SubAdmin".to_string(){
+            r = "Admin".to_string();
+        }
+        if role.role_type =="Admin".to_string(){
+            r = "Admin".to_string();
+            break;
+        }
+    }
+
+    if r=="Admin".to_string(){
         let rows = sqlx::query_as!(Restaurants,
             "SELECT restaurant_id, restaurant_name, restaurant_address, user_id 
             FROM Restaurants"
@@ -78,7 +116,7 @@ async fn get_restaurant_by_user_id(state: Data<AppState>, usr: Users) -> Result<
         .fetch_all(&state.db)
         .await?;
         Ok(HttpResponse::Ok().json(rows))
-    } else if role_row.role_type=="SubAdmin".to_string() {
+    } else if r=="SubAdmin".to_string() {
         let rows = sqlx::query_as!(Restaurants,
             "SELECT restaurant_id, restaurant_name, restaurant_address, user_id 
             FROM Restaurants WHERE user_id=$1", b_id
@@ -98,12 +136,25 @@ async fn get_restaurant_by_user_id(state: Data<AppState>, usr: Users) -> Result<
 #[get("/dish")]
 async fn get_dish_by_user_id(state: Data<AppState>, usr: Users) -> Result<impl Responder, MyError> {
     let b_id = usr.user_id;
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-    )
-    .fetch_one(&state.db)
-    .await?;
 
-    if role_row.role_type=="Admin".to_string(){
+    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
+        )
+        .fetch_all(&state.db)
+        .await?;
+
+    let mut r = "".to_string();
+    for role in role_row{
+
+        if role.role_type =="SubAdmin".to_string(){
+            r = "Admin".to_string();
+        }
+        if role.role_type =="Admin".to_string(){
+            r = "Admin".to_string();
+            break;
+        }
+    }
+
+    if r=="Admin".to_string(){
         let rows = sqlx::query_as!(Dishes,
             "SELECT dish_id, dish_name, dish_cost, restaurant_id, user_id 
             FROM dishes"
@@ -111,7 +162,7 @@ async fn get_dish_by_user_id(state: Data<AppState>, usr: Users) -> Result<impl R
         .fetch_all(&state.db)
         .await?;
         Ok(HttpResponse::Ok().json(rows))
-    } else if role_row.role_type=="SubAdmin".to_string() {
+    } else if r=="SubAdmin".to_string() {
         let rows = sqlx::query_as!(Dishes,
             "SELECT dish_id, dish_name, dish_cost, restaurant_id, user_id 
             FROM dishes WHERE user_id=$1", b_id
@@ -134,12 +185,25 @@ async fn get_users_list(state: Data<AppState>, usr:Users) -> Result<impl Respond
 
     let b_id = usr.user_id;
 
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-    )
-    .fetch_one(&state.db)
-    .await?;
 
-    if role_row.role_type =="Admin".to_string()||role_row.role_type =="Admin".to_string() {
+    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
+        )
+        .fetch_all(&state.db)
+        .await?;
+
+    let mut r = "".to_string();
+    for role in role_row{
+
+        if role.role_type =="SubAdmin".to_string(){
+            r = "Admin".to_string();
+        }
+        if role.role_type =="Admin".to_string(){
+            r = "Admin".to_string();
+            break;
+        }
+    }
+
+    if r =="Admin".to_string()||r =="SubAdmin".to_string() {
         let row = sqlx::query_as!( Users,
             "SELECT user_id, user_name, user_password, user_email FROM users"
         )

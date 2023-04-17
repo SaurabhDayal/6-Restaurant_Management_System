@@ -149,38 +149,37 @@ pub async fn add_address(state: Data<AppState>, adderess: web::Json<Addresses>, 
 
 
 // Get distance from all user addresses to a particular restaurant address
-#[get("/address/{res_id}")]
-pub async fn get_distance(state: Data<AppState>, res_id: web::Path<i32>, usr:Users) -> Result<impl Responder, MyError> {
+#[get("/address/{res_id}/{user_add_id}")]
+pub async fn get_distance(state: Data<AppState>, path: web::Path<(i32,i32)>, usr:Users) -> Result<impl Responder, MyError> {
     
-    let b_id = usr.user_id;
+    let (res_id,user_add_id)=path.into_inner();
+    let user_add=sqlx::query_as!( Addresses, 
+        "SELECT address_id, address_name, address_lat, address_lng, user_id FROM addresses WHERE address_id=$1", user_add_id         
+    )
+    .fetch_one(&state.db)
+    .await?;
 
-    let res_id=res_id.into_inner();
     let res_add= sqlx::query_as!( Addresses,
         "SELECT address_id, address_name, address_lat, address_lng, user_id FROM addresses WHERE address_id=$1", res_id         
     )
     .fetch_one(&state.db)
     .await?;
 
-    let user_add_list = sqlx::query_as!( Addresses,
-        "SELECT address_id, address_name, address_lat, address_lng, user_id FROM addresses WHERE user_id=$1", b_id         
-    )
-    .fetch_all(&state.db)
-    .await?;
 
-    let mut response = Vec::new();
-    response.push(format!("Distance of restaurant with id {:?} with user with user_id {}, if any are: ", res_id, b_id ));
+    let dlong = res_add.address_lng  - user_add.address_lng;
+    let dlat = res_add.address_lat - user_add.address_lat;
 
-    for address in user_add_list {
-        
-        let dlong = res_add.address_lng  - address.address_lng;
-        let dlat = res_add.address_lat - address.address_lat;
+    let ans = (dlong * dlat) /2.0; 
+    let ans = ans * 6371.00;
 
-        let ans = (dlong * dlat) /2.0; 
-        let ans = ans * 6371.00;
+        let distance =(format!("Distance of Restaurant-{} with User Address-{} is :   {} ", 
+        res_add.address_name, usr.user_name, ans));
 
-        response.push(format!("Distance of restaurant with id {:?} with user with user_id {} is :   {} ", res_id, b_id, ans ));
-    }
+        let add_dist = AddressDistance {
+            distance : distance
+        };
 
-    Ok(actix_web::web::Json(response))
+    Ok(actix_web::web::Json(add_dist))
+
 }
 

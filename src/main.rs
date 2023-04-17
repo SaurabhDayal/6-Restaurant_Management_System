@@ -19,8 +19,6 @@ mod error;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-    let x = 5_u64;
-    println!("{x}");
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     

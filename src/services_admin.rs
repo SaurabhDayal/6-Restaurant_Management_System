@@ -15,10 +15,17 @@ async fn create_subadmin(state: Data<AppState>, user: web::Json<Users>, usr:User
 
     let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
     )
-    .fetch_one(&state.db)
+    .fetch_all(&state.db)
     .await?;
 
-    if role_row.role_type =="Admin".to_string() {
+    let mut bool = false;
+    for role in role_row{
+        if role.role_type =="Admin".to_string(){
+            bool = true;
+        }
+    }
+
+    if bool  {
         let mut tx = state.db.begin().await.map_err(|_| MyError::InternalError )?;
         let row = sqlx::query_as!(Users,
             "INSERT INTO users (user_name, user_password, user_email) VALUES ($1, $2, $3) 
@@ -51,10 +58,17 @@ async fn get_subadmin_list(state: Data<AppState>, usr:Users) -> Result<impl Resp
 
     let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
     )
-    .fetch_one(&state.db)
+    .fetch_all(&state.db)
     .await?;
 
-    if role_row.role_type =="Admin".to_string() {
+    let mut bool = false;
+    for role in role_row{
+        if role.role_type =="Admin".to_string(){
+            bool = true;
+        }
+    }
+
+    if bool {
         let row = sqlx::query_as!( Users,
             "SELECT u.user_id, u.user_name, u.user_password, u.user_email FROM users u 
             INNER JOIN roles r ON u.user_id=r.user_id
