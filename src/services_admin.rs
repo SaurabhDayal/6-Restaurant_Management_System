@@ -1,9 +1,7 @@
-use std::borrow::BorrowMut;
-
 use actix_web::{web};
 use actix_web::{get, post, Responder};
 use actix_web::{web::Data, HttpResponse};
-use sqlx::{self};
+use sqlx;
 
 use crate::error::MyError;
 use crate::model::*;

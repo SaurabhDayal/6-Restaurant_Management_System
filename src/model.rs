@@ -68,30 +68,38 @@ impl FromRequest for Users {
         let req = req.clone();
 
         Box::pin(async move {
-            let token = req.headers().get("Authorization");
+            
             let db = req.app_data::<Data<AppState>>();
-
             if db .is_none() {
                 return Err(MyError::InternalError);
             }
-
+            
+            let token = req.headers().get("Authorization");
             return match token {
                 Some(data) => {
+
                     let state = db.unwrap().clone();
-                    let authToken = token.unwrap().to_str().unwrap().clone();
 
-                    let x=&authToken[7..];
-                    let res = sqlx::query_as!(Auths,"SELECT user_token, user_id from auths WHERE
-                     user_token =$1", x)
-                        .fetch_one(&state.db).await;
-                    let auth = res;
+                    let auth_token = token.unwrap().to_str().unwrap().clone();
+                    let x=&auth_token[7..];
 
-                    match auth{
+                    let auth_row = sqlx::query_as!(Auths,"SELECT user_token, user_id FROM auths 
+                        WHERE user_token =$1", x)
+                        .fetch_one(&state.db)
+                        .await;
+
+                    match auth_row{
                         Ok(a)=>{
-                            let res = sqlx::query_as!(Users, "SELECT u.user_id, u.user_name, u.user_password, u.user_email 
-                            FROM Users u INNER JOIN Auths a ON u.user_id = a.user_id where u.user_id=$1", a.user_id)
-                                .fetch_one(&state.db).await;
-                            Ok(res.unwrap())
+
+                            let user = sqlx::query_as!(Users, 
+                                "SELECT u.user_id, u.user_name, u.user_password, u.user_email 
+                                FROM Users u INNER JOIN Auths a ON u.user_id = a.user_id where u.user_id=$1", 
+                                a.user_id)
+                                .fetch_one(&state.db)
+                                .await;
+
+
+                            Ok(user.unwrap())
                         },
                         _=>Err(MyError::InternalError)
                     }

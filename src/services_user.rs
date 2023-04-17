@@ -2,7 +2,7 @@ use actix_web::{web};
 use actix_web::{get, post, Responder};
 use actix_web::{web::Data, HttpResponse};
 use rand::distributions::{Alphanumeric, DistString};
-use sqlx::{self};
+use sqlx;
 
 use crate::error::MyError;
 use crate::model::*;
@@ -176,8 +176,7 @@ pub async fn get_distance(state: Data<AppState>, res_id: web::Path<i32>, usr:Use
         let dlat = res_add.address_lat - address.address_lat;
 
         let ans = (dlong * dlat) /2.0; 
-        let R = 6371.00;
-        let ans = ans * R;
+        let ans = ans * 6371.00;
 
         response.push(format!("Distance of restaurant with id {:?} with user with user_id {} is :   {} ", res_id, b_id, ans ));
     }
