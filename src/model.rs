@@ -17,13 +17,15 @@ pub struct Users {
     pub user_name: String,
     pub user_password: String,
     pub user_email: String,
+    pub credit: i32,
 }
 
 pub struct UserAuth {
     pub user_id: i32,
     pub user_name: String,
     pub user_email: String,
-    pub roles: Vec<Roles>
+    pub roles: Vec<Roles>,
+    pub credit: i32
 }
 
 
@@ -64,12 +66,23 @@ pub struct Dishes {
     pub dish_cost: i32,
     pub restaurant_id: i32,
     pub user_id: i32,
+    pub time: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug, sqlx::FromRow)]
 pub struct AddressDistance {
     pub distance: String
 }
+
+#[derive(Serialize, Deserialize, Debug, sqlx::FromRow)]
+pub struct Orders {
+    pub id: i32,
+    pub d_id: i32,
+    pub time: i32,
+    pub user_id: i32,
+    pub is_delivered: bool,
+}
+
 
 impl FromRequest for UserAuth {
     type Error = MyError;
@@ -103,7 +116,7 @@ impl FromRequest for UserAuth {
                         Ok(a)=>{
 
                             let user = sqlx::query_as!(Users, 
-                                "SELECT u.user_id, u.user_name, u.user_password, u.user_email 
+                                "SELECT u.user_id, u.user_name, u.user_password, u.user_email, u.credit 
                                 FROM Users u INNER JOIN Auths a ON u.user_id = a.user_id where u.user_id=$1", 
                                 a.user_id)
                                 .fetch_one(&state.db)
@@ -113,7 +126,8 @@ impl FromRequest for UserAuth {
                                 user_id: user.user_id,
                                 user_email: user.user_email,
                                 user_name: user.user_name,
-                                roles: vec![]
+                                roles: vec![],
+                                credit:user.credit,
                             };
 
                             user_auth.roles = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles 

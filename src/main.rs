@@ -1,20 +1,21 @@
 use actix_web::{web::Data, App, HttpServer};
 use dotenv::dotenv;
-use sqlx::{self};
+use sqlx;
 use sqlx::{postgres::PgPoolOptions};
-
-use model::*;
-use services_user::*;
-use services_subadmin::*;
-use services_admin::*;
-use error::*;
 
 mod model;
 mod services_user;
+mod service_orders;
 mod services_subadmin;
 mod services_admin;
 mod error;
 
+use model::*;
+use services_user::*;
+use service_orders::*;
+use services_subadmin::*;
+use services_admin::*;
+use error::*;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -51,6 +52,10 @@ async fn main() -> std::io::Result<()> {
             .service(get_restaurant_list)
             .service(get_dish_list)
             .service(get_distance)
+
+            .service(add_order)
+            .service(delete_order)
+            .service(ok_order)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

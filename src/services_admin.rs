@@ -24,9 +24,9 @@ async fn create_subadmin(state: Data<AppState>, user: web::Json<Users>, usr:User
     if bool  {
         let mut tx = state.db.begin().await.map_err(|_| MyError::InternalError )?;
         let row = sqlx::query_as!(Users,
-            "INSERT INTO users (user_name, user_password, user_email) VALUES ($1, $2, $3) 
-            RETURNING user_id, user_name, user_password, user_email",
-            user.user_name, user.user_password, user.user_email
+            "INSERT INTO users (user_name, user_password, user_email, credit) VALUES ($1, $2, $3, $4) 
+            RETURNING user_id, user_name, user_password, user_email, credit",
+            user.user_name, user.user_password, user.user_email, user.credit
         )
         .fetch_one(&mut tx)
         .await?;
@@ -61,7 +61,7 @@ async fn get_subadmin_list(state: Data<AppState>, usr:UserAuth) -> Result<impl R
 
     if bool {
         let row = sqlx::query_as!( Users,
-            "SELECT u.user_id, u.user_name, u.user_password, u.user_email FROM users u 
+            "SELECT u.user_id, u.user_name, u.user_password, u.user_email, u.credit FROM users u 
             INNER JOIN roles r ON u.user_id=r.user_id
             WHERE r.role_type='SubAdmin'"
         )

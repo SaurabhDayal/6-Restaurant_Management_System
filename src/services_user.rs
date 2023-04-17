@@ -14,9 +14,9 @@ pub async fn register(state: Data<AppState>, user: web::Json<Users>) -> Result<i
     let user =user.into_inner();
 
     let row = sqlx::query_as!(Users,
-        "INSERT INTO users (user_name, user_password, user_email) VALUES ($1, $2, $3) 
-        RETURNING user_id, user_name, user_password, user_email",
-        user.user_name, user.user_password, user.user_email
+        "INSERT INTO users (user_name, user_password, user_email, credit) VALUES ($1, $2, $3, $4) 
+        RETURNING user_id, user_name, user_password, user_email, credit",
+        user.user_name, user.user_password, user.user_email, 1000
     )
     .fetch_one(&state.db)
     .await?;
@@ -34,7 +34,7 @@ pub async fn register(state: Data<AppState>, user: web::Json<Users>) -> Result<i
 #[post("/user/login")]
 async fn login(state: Data<AppState>, user: web::Json<Users>) -> Result<impl Responder, MyError> {
     let user = user.into_inner();
-    let table_user = sqlx::query_as!(Users, "select user_id, user_name, user_password, user_email from users where user_name =$1",
+    let table_user = sqlx::query_as!(Users, "select user_id, user_name, user_password, user_email, credit from users where user_name =$1",
          user.user_name)
     .fetch_one(&state.db).await?;
 
@@ -57,7 +57,7 @@ async fn logout(state: Data<AppState>, user: web::Json<Users>, usr: UserAuth) ->
     let user = user.into_inner();
     let b_id = usr.user_id;
 
-    let table_user = sqlx::query_as!(Users, "select user_id, user_name, user_password, user_email from users 
+    let table_user = sqlx::query_as!(Users, "select user_id, user_name, user_password, user_email, credit from users 
         WHERE user_name =$1",
         user.user_name)
         .fetch_one(&state.db)
@@ -97,7 +97,7 @@ async fn get_dish_list(state: Data<AppState>, res_id: web::Path<i32>, usr: UserA
     let res_id=res_id.into_inner();
  
     let rows = sqlx::query_as!( Dishes,
-            "SELECT dish_id, dish_name, dish_cost, restaurant_id, user_id 
+            "SELECT dish_id, dish_name, dish_cost, restaurant_id, user_id, time
             FROM dishes WHERE restaurant_id=$1", res_id
         )
         .fetch_all(&state.db)

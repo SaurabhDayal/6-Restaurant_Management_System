@@ -14,19 +14,9 @@ async fn create_restaurant(state: Data<AppState>, restaurant: web::Json<Restaura
 
     let role_row = usr.roles;
 
-    let mut r = "".to_string();
-    for role in role_row{
-
-        if role.role_type =="SubAdmin".to_string(){
-            r = "Admin".to_string();
-        }
-        if role.role_type =="Admin".to_string(){
-            r = "Admin".to_string();
-            break;
-        }
-    }
-
-    if r=="Admin".to_string() || r=="SubAdmin".to_string() {
+    if role_row.iter().any(|x| {
+        x.role_type == "Admin"|| x.role_type == "SubAdmin"
+    })  {
         let row = sqlx::query_as!( Restaurants,
             "INSERT INTO restaurants (restaurant_name, restaurant_address, user_id) VALUES ($1, $2, $3) 
             RETURNING restaurant_id, restaurant_name, restaurant_address, user_id",
@@ -51,9 +41,9 @@ async fn create_dish(state: Data<AppState>, dish: web::Json<Dishes>, usr:UserAut
         x.role_type == "Admin"|| x.role_type == "SubAdmin"
     }) {
         let row = sqlx::query_as!( Dishes,
-            "INSERT INTO dishes (dish_name, dish_cost, restaurant_id, user_id) VALUES ($1, $2, $3, $4) 
-            RETURNING dish_id, dish_name, dish_cost, restaurant_id, user_id",
-            d.dish_name, d.dish_cost, d.restaurant_id, usr.user_id
+            "INSERT INTO dishes (dish_name, dish_cost, restaurant_id, user_id, time) VALUES ($1, $2, $3, $4, $5) 
+            RETURNING dish_id, dish_name, dish_cost, restaurant_id, user_id, time",
+            d.dish_name, d.dish_cost, d.restaurant_id, usr.user_id, d.time
         )
         .fetch_one(&state.db)
         .await?;
@@ -110,7 +100,7 @@ async fn get_dish_by_user_id(state: Data<AppState>, usr: UserAuth) -> Result<imp
         x.role_type == "Admin"
     }){
         let rows = sqlx::query_as!(Dishes,
-            "SELECT dish_id, dish_name, dish_cost, restaurant_id, user_id 
+            "SELECT dish_id, dish_name, dish_cost, restaurant_id, user_id, time
             FROM dishes"
         )
         .fetch_all(&state.db)
@@ -120,7 +110,7 @@ async fn get_dish_by_user_id(state: Data<AppState>, usr: UserAuth) -> Result<imp
         x.role_type == "SubAdmin"
     }) {
         let rows = sqlx::query_as!(Dishes,
-            "SELECT dish_id, dish_name, dish_cost, restaurant_id, user_id 
+            "SELECT dish_id, dish_name, dish_cost, restaurant_id, user_id, time 
             FROM dishes WHERE user_id=$1", usr.user_id
         )
         .fetch_all(&state.db)
@@ -145,7 +135,7 @@ async fn get_users_list(state: Data<AppState>, usr:UserAuth) -> Result<impl Resp
         x.role_type == "Admin"|| x.role_type == "SubAdmin"
     }) {
         let row = sqlx::query_as!( Users,
-            "SELECT user_id, user_name, user_password, user_email FROM users"
+            "SELECT user_id, user_name, user_password, user_email, credit FROM users"
         )
         .fetch_all(&state.db)
         .await?;
