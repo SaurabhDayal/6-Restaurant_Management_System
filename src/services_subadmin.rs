@@ -9,14 +9,10 @@ use crate::model::*;
 
 // Create Restaurant
 #[post("/restaurant")]
-async fn create_restaurant(state: Data<AppState>, restaurant: web::Json<Restaurants>, usr:Users) -> Result<impl Responder, MyError> {
+async fn create_restaurant(state: Data<AppState>, restaurant: web::Json<Restaurants>, usr:UserAuth) -> Result<impl Responder, MyError> {
     let res = restaurant.into_inner();
-    let b_id = usr.user_id;
 
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-        )
-        .fetch_all(&state.db)
-        .await?;
+    let role_row = usr.roles;
 
     let mut r = "".to_string();
     for role in role_row{
@@ -34,7 +30,7 @@ async fn create_restaurant(state: Data<AppState>, restaurant: web::Json<Restaura
         let row = sqlx::query_as!( Restaurants,
             "INSERT INTO restaurants (restaurant_name, restaurant_address, user_id) VALUES ($1, $2, $3) 
             RETURNING restaurant_id, restaurant_name, restaurant_address, user_id",
-            res.restaurant_name, res.restaurant_address, b_id
+            res.restaurant_name, res.restaurant_address, usr.user_id
         )
         .fetch_one(&state.db)
         .await?;
@@ -47,15 +43,9 @@ async fn create_restaurant(state: Data<AppState>, restaurant: web::Json<Restaura
 
 // Create Dishes
 #[post("/dish")]
-async fn create_dish(state: Data<AppState>, dish: web::Json<Dishes>, usr:Users) -> Result<impl Responder, MyError> {
+async fn create_dish(state: Data<AppState>, dish: web::Json<Dishes>, usr:UserAuth) -> Result<impl Responder, MyError> {
     let d = dish.into_inner();
-    let b_id = usr.user_id;
-
-
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-        )
-        .fetch_all(&state.db)
-        .await?;
+    let role_row = usr.roles;
 
     let mut r = "".to_string();
     for role in role_row{
@@ -73,7 +63,7 @@ async fn create_dish(state: Data<AppState>, dish: web::Json<Dishes>, usr:Users) 
         let row = sqlx::query_as!( Dishes,
             "INSERT INTO dishes (dish_name, dish_cost, restaurant_id, user_id) VALUES ($1, $2, $3, $4) 
             RETURNING dish_id, dish_name, dish_cost, restaurant_id, user_id",
-            d.dish_name, d.dish_cost, d.restaurant_id, b_id
+            d.dish_name, d.dish_cost, d.restaurant_id, usr.user_id
         )
         .fetch_one(&state.db)
         .await?;
@@ -88,19 +78,15 @@ async fn create_dish(state: Data<AppState>, dish: web::Json<Dishes>, usr:Users) 
 // Admin list all restaurant 
 // Subadmin list his/her restaurants
 #[get("/restaurant")]
-async fn get_restaurant_by_user_id(state: Data<AppState>, usr: Users) -> Result<impl Responder, MyError> {
-    let b_id = usr.user_id;
+async fn get_restaurant_by_user_id(state: Data<AppState>, usr: UserAuth) -> Result<impl Responder, MyError> {
 
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-        )
-        .fetch_all(&state.db)
-        .await?;
+    let role_row = usr.roles;
 
     let mut r = "".to_string();
-    for role in role_row{
 
+    for role in role_row{
         if role.role_type =="SubAdmin".to_string(){
-            r = "Admin".to_string();
+            r = "SubAdmin".to_string();
         }
         if role.role_type =="Admin".to_string(){
             r = "Admin".to_string();
@@ -119,7 +105,7 @@ async fn get_restaurant_by_user_id(state: Data<AppState>, usr: Users) -> Result<
     } else if r=="SubAdmin".to_string() {
         let rows = sqlx::query_as!(Restaurants,
             "SELECT restaurant_id, restaurant_name, restaurant_address, user_id 
-            FROM Restaurants WHERE user_id=$1", b_id
+            FROM Restaurants WHERE user_id=$1", usr.user_id
         )
         .fetch_all(&state.db)
         .await?;
@@ -134,14 +120,10 @@ async fn get_restaurant_by_user_id(state: Data<AppState>, usr: Users) -> Result<
 // Admin list all dishes
 // Subadmin list his/her dishes
 #[get("/dish")]
-async fn get_dish_by_user_id(state: Data<AppState>, usr: Users) -> Result<impl Responder, MyError> {
-    let b_id = usr.user_id;
-
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-        )
-        .fetch_all(&state.db)
-        .await?;
-
+async fn get_dish_by_user_id(state: Data<AppState>, usr: UserAuth) -> Result<impl Responder, MyError> {
+    
+    let role_row = usr.roles;
+    
     let mut r = "".to_string();
     for role in role_row{
 
@@ -165,7 +147,7 @@ async fn get_dish_by_user_id(state: Data<AppState>, usr: Users) -> Result<impl R
     } else if r=="SubAdmin".to_string() {
         let rows = sqlx::query_as!(Dishes,
             "SELECT dish_id, dish_name, dish_cost, restaurant_id, user_id 
-            FROM dishes WHERE user_id=$1", b_id
+            FROM dishes WHERE user_id=$1", usr.user_id
         )
         .fetch_all(&state.db)
         .await?;
@@ -178,18 +160,11 @@ async fn get_dish_by_user_id(state: Data<AppState>, usr: Users) -> Result<impl R
 
 
 
-
 // Get all users 
 #[get("/users")]
-async fn get_users_list(state: Data<AppState>, usr:Users) -> Result<impl Responder, MyError> {
+async fn get_users_list(state: Data<AppState>, usr:UserAuth) -> Result<impl Responder, MyError> {
 
-    let b_id = usr.user_id;
-
-
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-        )
-        .fetch_all(&state.db)
-        .await?;
+    let role_row = usr.roles;
 
     let mut r = "".to_string();
     for role in role_row{

@@ -19,6 +19,13 @@ pub struct Users {
     pub user_email: String,
 }
 
+pub struct UserAuth {
+    pub user_id: i32,
+    pub user_name: String,
+    pub user_email: String,
+    pub roles: Vec<Roles>
+}
+
 
 #[derive(Serialize, Deserialize, Debug, sqlx::FromRow)]
 pub struct Auths {
@@ -64,7 +71,7 @@ pub struct AddressDistance {
     pub distance: String
 }
 
-impl FromRequest for Users {
+impl FromRequest for UserAuth {
     type Error = MyError;
     type Future = Pin<Box<dyn Future<Output = Result<Self, Self::Error>>>>;
 
@@ -100,15 +107,27 @@ impl FromRequest for Users {
                                 FROM Users u INNER JOIN Auths a ON u.user_id = a.user_id where u.user_id=$1", 
                                 a.user_id)
                                 .fetch_one(&state.db)
-                                .await;
+                                .await.unwrap();
 
-                            Ok(user.unwrap())
+                            let mut user_auth = UserAuth{
+                                user_id: user.user_id,
+                                user_email: user.user_email,
+                                user_name: user.user_name,
+                                roles: vec![]
+                            };
+
+                            user_auth.roles = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles 
+                                WHERE user_id=$1", user.user_id)
+                                .fetch_all(&state.db)
+                                .await.unwrap();
+
+                            Ok(user_auth)
                         },
-                        _=>Err(MyError::InternalError)
+                        _=>Err(MyError::UnAuthorized)
                     }
                    }
 
-                _ => Err(MyError::UnAuthorized)
+                _ => Err(MyError::NoToken)
             }
         })
 }}

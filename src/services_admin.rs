@@ -9,14 +9,10 @@ use crate::model::*;
 
 // Create SubAdmin
 #[post("/subadmin")]
-async fn create_subadmin(state: Data<AppState>, user: web::Json<Users>, usr:Users) -> Result<impl Responder, MyError> {
+async fn create_subadmin(state: Data<AppState>, user: web::Json<Users>, usr:UserAuth) -> Result<impl Responder, MyError> {
     let user = user.into_inner();
-    let b_id = usr.user_id;
 
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-    )
-    .fetch_all(&state.db)
-    .await?;
+    let role_row = usr.roles;
 
     let mut bool = false;
     for role in role_row{
@@ -52,14 +48,9 @@ async fn create_subadmin(state: Data<AppState>, user: web::Json<Users>, usr:User
 
 // Get SubAdmin list
 #[get("/subadmin")]
-async fn get_subadmin_list(state: Data<AppState>, usr:Users) -> Result<impl Responder, MyError> {
+async fn get_subadmin_list(state: Data<AppState>, usr:UserAuth) -> Result<impl Responder, MyError> {
 
-    let b_id = usr.user_id;
-
-    let role_row = sqlx::query_as!( Roles,"SELECT role_id, role_type, user_id FROM roles WHERE user_id=$1", b_id
-    )
-    .fetch_all(&state.db)
-    .await?;
+    let role_row = usr.roles;
 
     let mut bool = false;
     for role in role_row{

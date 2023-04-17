@@ -9,6 +9,9 @@ use crate::MyError::*;
 
 #[derive(Debug, Display, Error)]
 pub enum MyError {
+    #[display(fmt = "no token set in header")]
+    NoToken,
+
     #[display(fmt = "no content for requested item")]
     NoContent,
 
@@ -28,6 +31,7 @@ impl actix_web::error::ResponseError for MyError {
 
     fn status_code(&self) -> StatusCode {
         match *self {
+            MyError::NoToken=> StatusCode::BAD_REQUEST,
             MyError::NoContent => StatusCode::BAD_REQUEST,
             MyError::UnAuthorized => StatusCode::UNAUTHORIZED,
             MyError::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
